@@ -4,11 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Faty Watch TV</title>
+    <!-- Cargamos Tailwind de forma segura -->
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <!-- Cargamos Lucide para los íconos -->
     <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body class="p-4 max-w-lg mx-auto pb-24 bg-[#141414] text-[#e5e5e5] font-sans antialiased">
 
+    <!-- Encabezado principal -->
     <header class="flex flex-col gap-4 mb-6">
         <div class="flex justify-between items-center">
             <h1 class="text-red-600 text-3xl font-extrabold tracking-wider flex items-center gap-2">
@@ -29,12 +32,14 @@
         </button>
     </header>
 
+    <!-- Contenedor donde se pintan las series -->
     <main id="series-list" class="space-y-4">
         <div id="loading-state" class="text-center py-12 text-zinc-500">
             <p class="text-sm animate-pulse">Sincronizando con Faty Watch Cloud...</p>
         </div>
     </main>
 
+    <!-- Modal para Añadir / Editar Series -->
     <div id="modal" class="fixed inset-0 bg-black/85 backdrop-blur-md hidden flex items-center justify-center p-4 z-50 overflow-y-auto">
         <div class="bg-[#181818] border border-zinc-800 rounded-xl p-6 w-full max-w-md shadow-2xl my-8">
             <h2 id="modal-title" class="text-xl font-bold mb-4 text-white">Nueva Serie</h2>
@@ -69,6 +74,7 @@
                     </div>
                 </div>
 
+                <!-- Bloque de Arcos -->
                 <div class="bg-zinc-900/80 p-3 rounded-lg border border-zinc-800">
                     <label class="block text-xs font-bold text-yellow-500 uppercase mb-2">Estructura de Arcos (Toca un arco para editarlo)</label>
                     <div class="space-y-2 text-xs">
@@ -93,6 +99,7 @@
         </div>
     </div>
 
+    <!-- Modal de Estadísticas -->
     <div id="stats-modal" class="fixed inset-0 bg-black/85 backdrop-blur-md hidden flex items-center justify-center p-4 z-50">
         <div class="bg-[#181818] border border-zinc-800 rounded-xl p-6 w-full max-w-md shadow-2xl max-h-[85vh] overflow-y-auto">
             <div class="flex justify-between items-center mb-4">
@@ -119,6 +126,7 @@
         </div>
     </div>
 
+    <!-- Bloque de Lógica de Firebase y Renderizado -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getDatabase, ref, push, onValue, update, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
@@ -244,7 +252,8 @@
                     </div>`;
                 container.appendChild(card);
             });
-            lucide.createIcons();
+            // Fuerza a pintar los iconos siempre que se rendericen componentes dinámicos
+            if(window.lucide) { window.lucide.createIcons(); }
         };
 
         window.addManualArc = function() {
@@ -390,7 +399,7 @@
                                     Object.keys(mapSeasons).forEach(k => {
                                         const count = (mapSeasons[k].end - mapSeasons[k].start) + 1;
                                         currentSeasonsObj[k] = { start: acumulado + 1, end: acumulado + count };
-                                        acumunlado += count;
+                                        acumulado += count;
                                     });
                                 }
                             } catch(e) {
@@ -575,10 +584,8 @@
             }
         };
 
-        // Inicialización de Lucide al cargar la vista
-        document.addEventListener("DOMContentLoaded", () => {
-            lucide.createIcons();
-        });
+        // Renderizado inicial inmediato e íconos listos
+        if(window.lucide) { window.lucide.createIcons(); }
     </script>
 </body>
 </html>
