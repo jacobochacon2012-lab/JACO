@@ -18,10 +18,9 @@ jobs:
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
-          distribution: 'zulu'
-          java-version: '17'
-          # Desactivamos el bendito escaneo automático de Gradle que rompe el proceso
-          cache: ''
+          distribution: 'oracle'
+          # Subimos a la version 21 para que no choque con Gradle 8
+          java-version: '21'
 
       - name: Create Web Folder
         run: |
