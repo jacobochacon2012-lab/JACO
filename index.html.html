@@ -3,34 +3,67 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval'; script-src * 'unsafe-inline' 'unsafe-eval'; connect-src * 'unsafe-inline'; img-src * data: blob 'unsafe-inline'; style-src * 'unsafe-inline';">
+    
     <title>Faty Watch TV</title>
+
+    <style>
+        body {
+            background-color: #141414 !important;
+            color: #e5e5e5 !important;
+            font-family: sans-serif;
+            margin: 0;
+            padding: 16px;
+        }
+        .fallback-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+        .fallback-title {
+            color: #dc2626;
+            font-size: 24px;
+            font-weight: bold;
+            letter-spacing: 1px;
+            margin: 0;
+        }
+        .fallback-btn {
+            background-color: #dc2626;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 9999px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+    </style>
+
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
-    
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
 </head>
-<body class="p-4 max-w-lg mx-auto pb-24 bg-[#141414] text-[#e5e5e5] font-sans antialiased">
+<body class="max-w-lg mx-auto pb-24">
 
-    <header class="flex flex-col gap-4 mb-6">
-        <div class="flex justify-between items-center">
-            <h1 class="text-red-600 text-3xl font-extrabold tracking-wider flex items-center gap-2">
-                <i data-lucide="tv" class="w-8 h-8"></i>FATY WATCH
-            </h1>
-            <button onclick="toggleModal(true)" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-full font-medium text-sm flex items-center gap-2 transition shadow-lg transform hover:scale-105">
-                <i data-lucide="plus" class="w-4 h-4"></i> Añadir Serie
-            </button>
-        </div>
-        
-        <div class="relative">
-            <i data-lucide="search" class="absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-500 w-4 h-4"></i>
-            <input type="text" id="search-bar" oninput="searchLocalSeries()" placeholder="Buscar en mis series o arcos..." class="w-full bg-[#2a2a2a] pl-10 pr-4 py-2 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-red-600 border border-transparent">
-        </div>
-
-        <button onclick="openStatsModal()" class="w-full bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-200 py-2.5 rounded-lg font-medium text-xs flex items-center justify-center gap-2 transition">
-            <i data-lucide="bar-chart-2" class="w-4 h-4 text-red-500"></i> Ver Estadísticas y Pendientes
+    <header class="fallback-header">
+        <h1 class="fallback-title flex items-center gap-2">
+            <i data-lucide="tv" class="w-8 h-8"></i>FATY WATCH
+        </h1>
+        <button onclick="toggleModal(true)" class="fallback-btn flex items-center gap-2 transition shadow-lg transform hover:scale-105">
+            + Añadir Serie
         </button>
     </header>
+    
+    <div class="relative mb-6">
+        <i data-lucide="search" class="absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-500 w-4 h-4"></i>
+        <input type="text" id="search-bar" oninput="searchLocalSeries()" placeholder="Buscar en mis series o arcos..." class="w-full bg-[#2a2a2a] pl-10 pr-4 py-2 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-red-600 border border-transparent">
+    </div>
+
+    <button onclick="openStatsModal()" class="w-full bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-200 py-2.5 rounded-lg font-medium text-xs flex items-center justify-center gap-2 transition mb-4">
+        <i data-lucide="bar-chart-2" class="w-4 h-4 text-red-500"></i> Ver Estadísticas y Pendientes
+    </button>
 
     <main id="series-list" class="space-y-4">
         <div id="loading-state" class="text-center py-12 text-zinc-500">
@@ -132,30 +165,36 @@
             appId: "1:986728261890:web:aebc15255b11549038ba1b"
         };
 
-        // Inicialización Clásica
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
-        const dbRef = db.ref('series');
+        // Envoltura segura por si Firebase tarda en responder en el entorno empaquetado
+        try {
+            firebase.initializeApp(firebaseConfig);
+            const db = firebase.database();
+            const dbRef = db.ref('series');
 
-        let allSeries = [];
-        let currentSeasonsObj = {};
+            let allSeries = [];
+            let currentSeasonsObj = {};
 
-        dbRef.on('value', (snapshot) => {
-            allSeries = [];
-            const data = snapshot.val();
-            if (data) {
-                Object.keys(data).forEach(key => {
-                    allSeries.push({
-                        id: key,
-                        ...data[key],
-                        runtime: data[key].runtime || 40,
-                        seasons: data[key].seasons || null,
-                        vistos: data[key].vistos || {}
+            dbRef.on('value', (snapshot) => {
+                allSeries = [];
+                const data = snapshot.val();
+                if (data) {
+                    Object.keys(data).forEach(key => {
+                        allSeries.push({
+                            id: key,
+                            ...data[key],
+                            runtime: data[key].runtime || 40,
+                            seasons: data[key].seasons || null,
+                            vistos: data[key].vistos || {}
+                        });
                     });
-                });
-            }
-            renderSeries(allSeries);
-        });
+                }
+                renderSeries(allSeries);
+            }, (error) => {
+                document.getElementById('loading-state').innerHTML = `<p class='text-red-500 text-xs'>Error de conexión Cloud: ${error.message}</p>`;
+            });
+        } catch (e) {
+            document.getElementById('loading-state').innerHTML = "<p class='text-red-500 text-xs'>Error crítico de inicialización: El entorno bloqueó Firebase.</p>";
+        }
 
         window.renderSeries = function(targetList) {
             const container = document.getElementById('series-list');
@@ -341,12 +380,16 @@
                 vistos: id ? (allSeries.find(s=>s.id===id)?.vistos || {}) : {}
             };
 
-            if (id) {
-                db.ref(`series/${id}`).update(payload);
-            } else {
-                dbRef.push(payload);
+            try {
+                if (id) {
+                    firebase.database().ref(`series/${id}`).update(payload);
+                } else {
+                    firebase.database().ref('series').push(payload);
+                }
+                toggleModal(false);
+            } catch(err) {
+                alert("Error al guardar localmente: " + err.message);
             }
-            toggleModal(false);
         };
 
         window.toggleEpisodio = function(serieId, epIdStr) {
@@ -357,16 +400,19 @@
             } else {
                 nuevosVistos[epIdStr] = new Date().toISOString().split('T')[0];
             }
-            db.ref(`series/${serieId}`).update({ vistos: nuevosVistos });
+            firebase.database().ref(`series/${serieId}`).update({ vistos: nuevosVistos });
         };
 
         window.resetConteo = function(id) {
-            if (confirm('¿Reiniciar progreso?')) db.ref(`series/${id}`).update({ vistos: {} });
+            if (confirm('¿Reiniciar progreso?')) firebase.database().ref(`series/${id}`).update({ vistos: {} });
         };
 
         window.searchLocalSeries = function() {
             const query = document.getElementById('search-bar').value.toLowerCase().trim();
-            renderSeries(allSeries.filter(s => s.title.toLowerCase().includes(query)));
+            // Control por si falla la lista
+            if(typeof allSeries !== 'undefined') {
+                renderSeries(allSeries.filter(s => s.title.toLowerCase().includes(query)));
+            }
         };
 
         window.toggleModal = function(show) {
@@ -395,7 +441,7 @@
         };
 
         window.deleteSerie = function(id) {
-            if (confirm('¿Eliminar serie?')) db.ref(`series/${id}`).remove();
+            if (confirm('¿Eliminar serie?')) firebase.database().ref(`series/${id}`).remove();
         };
 
         window.toggleCalendario = function(id) {
