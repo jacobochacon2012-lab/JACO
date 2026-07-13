@@ -18,8 +18,7 @@ jobs:
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
-          distribution: 'oracle'
-          # Subimos a la version 21 para que no choque con Gradle 8
+          distribution: 'zulu'
           java-version: '21'
 
       - name: Create Web Folder
@@ -41,6 +40,8 @@ jobs:
           npx cap init "Faty Watch TV" "com.fatywatch.app" --web-dir=www
 
       - name: Create and Build Android
+        env:
+          JAVA_HOME: ${{ env.JAVA_HOME_21_X64 }}
         run: |
           npx cap add android
           npx cap sync android
