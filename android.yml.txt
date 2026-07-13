@@ -1,16 +1,56 @@
+name: Build APK
 
-    "url": "https://github.com/jacobochacon2012-lab/FATY/issues"
-  },
-  "homepage": "https://github.com/jacobochacon2012-lab/FATY#readme"
-}
+on:
+  workflow_dispatch:
 
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source
+        uses: actions/checkout@v4
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
 
-added 92 packages, and audited 93 packages in 4s
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+          # Desactivamos el bendito escaneo automático de Gradle que rompe el proceso
+          cache: ''
 
-11 packages are looking for funding
-  run `npm fund` for details
+      - name: Create Web Folder
+        run: |
+          mkdir -p www
+          if [ -f "index.html" ]; then
+            cp index.html www/index.html
+          else
+            echo '<h1>Faty Watch TV</h1>' > www/index.html
+          fi
 
-found 0 vulnerabilities
-error: unknown option '--confirm'
-Error: Process completed with exit code 1.
+      - name: Install Capacitor
+        run: |
+          npm init -y
+          npm install @capacitor/core @capacitor/cli @capacitor/android
+
+      - name: Configure Capacitor Project
+        run: |
+          npx cap init "Faty Watch TV" "com.fatywatch.app" --web-dir=www
+
+      - name: Create and Build Android
+        run: |
+          npx cap add android
+          npx cap sync android
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: FatyWatch-APK
+          path: android/app/build/outputs/apk/debug/app-debug.apk
