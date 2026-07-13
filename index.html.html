@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Faty Watch TV</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="p-4 max-w-lg mx-auto pb-24 bg-[#141414] text-[#e5e5e5] font-sans antialiased">
+
+    <header class="flex flex-col gap-4 mb-6">
+        <div class="flex justify-between items-center">
+            <h1 class="text-red-600 text-3xl font-extrabold tracking-wider flex items-center gap-2">
+                <i data-lucide="tv" class="w-8 h-8"></i>FATY WATCH
+            </h1>
+            <button onclick="toggleModal(true)" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-full font-medium text-sm flex items-center gap-2 transition shadow-lg transform hover:scale-105">
+                <i data-lucide="plus" class="w-4 h-4"></i> Añadir Serie
+            </button>
+        </div>
+        
+        <div class="relative">
+            <i data-lucide="search" class="absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-500 w-4 h-4"></i>
+            <input type="text" id="search-bar" oninput="searchLocalSeries()" placeholder="Buscar en mis series o arcos..." class="w-full bg-[#2a2a2a] pl-10 pr-4 py-2 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-red-600 border border-transparent">
+        </div>
+
+        <button onclick="openStatsModal()" class="w-full bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-200 py-2.5 rounded-lg font-medium text-xs flex items-center justify-center gap-2 transition">
+            <i data-lucide="bar-chart-2" class="w-4 h-4 text-red-500"></i> Ver Estadísticas y Pendientes
+        </button>
+    </header>
+
+    <main id="series-list" class="space-y-4">
+        <div id="loading-state" class="text-center py-12 text-zinc-500">
+            <p class="text-sm animate-pulse">Sincronizando con Faty Watch Cloud...</p>
+        </div>
+    </main>
+
+    <div id="modal" class="fixed inset-0 bg-black/85 backdrop-blur-md hidden flex items-center justify-center p-4 z-50 overflow-y-auto">
+        <div class="bg-[#181818] border border-zinc-800 rounded-xl p-6 w-full max-w-md shadow-2xl my-8">
+            <h2 id="modal-title" class="text-xl font-bold mb-4 text-white">Nueva Serie</h2>
+            <input type="hidden" id="edit-id">
+            
+            <div class="space-y-4">
+                <div class="bg-zinc-900/50 p-3 rounded-lg border border-zinc-800">
+                    <label class="block text-xs font-bold text-red-500 uppercase mb-1">Buscador Multi-Fuente (Arcos y Portadas)</label>
+                    <div class="flex gap-2">
+                        <input type="text" id="api-search" placeholder="Ej: One Piece, Batman..." class="flex-1 bg-[#2a2a2a] border border-zinc-700 rounded p-2 text-white focus:outline-none text-sm">
+                        <button onclick="searchInInternet()" class="bg-zinc-700 hover:bg-zinc-600 text-white px-3 py-2 rounded text-sm transition font-medium">Buscar</button>
+                    </div>
+                    <div id="api-results" class="mt-2 max-h-32 overflow-y-auto space-y-1 hidden bg-[#222] p-2 rounded border border-zinc-700 text-xs"></div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-zinc-400 uppercase mb-1">Nombre de la Serie *</label>
+                    <input type="text" id="serie-title" class="w-full bg-[#2a2a2a] border border-zinc-700 rounded p-2 text-white focus:outline-none focus:border-red-600 text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-zinc-400 uppercase mb-1">URL de la Portada</label>
+                    <input type="text" id="serie-cover" class="w-full bg-[#2a2a2a] border border-zinc-700 rounded p-2 text-white focus:outline-none focus:border-red-600 text-sm">
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-xs font-semibold text-zinc-400 uppercase mb-1">Total Episodios *</label>
+                        <input type="number" id="serie-total" min="1" class="w-full bg-[#2a2a2a] border border-zinc-700 rounded p-2 text-white focus:outline-none focus:border-red-600 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-zinc-400 uppercase mb-1">Duración Ep (Min) *</label>
+                        <input type="number" id="serie-runtime" min="1" class="w-full bg-[#2a2a2a] border border-zinc-700 rounded p-2 text-white focus:outline-none focus:border-red-600 text-sm">
+                    </div>
+                </div>
+
+                <div class="bg-zinc-900/80 p-3 rounded-lg border border-zinc-800">
+                    <label class="block text-xs font-bold text-yellow-500 uppercase mb-2">Estructura de Arcos (Toca un arco para editarlo)</label>
+                    <div class="space-y-2 text-xs">
+                        <input type="hidden" id="editing-arc-key">
+                        <input type="text" id="manual-arco-name" placeholder="Nombre del Arco (Ej: Arco de Egghead)" class="w-full bg-[#2a2a2a] border border-zinc-700 rounded p-1.5 text-white focus:outline-none">
+                        <div class="grid grid-cols-2 gap-2">
+                            <input type="number" id="manual-arco-start" placeholder="Cap. Inicio" class="w-full bg-[#2a2a2a] border border-zinc-700 rounded p-1.5 text-white focus:outline-none">
+                            <input type="number" id="manual-arco-end" placeholder="Cap. Fin" class="w-full bg-[#2a2a2a] border border-zinc-700 rounded p-1.5 text-white focus:outline-none">
+                        </div>
+                        <button type="button" id="btn-add-arc" onclick="addManualArc()" class="w-full bg-yellow-600/20 hover:bg-yellow-600/40 text-yellow-400 border border-yellow-600/50 py-1.5 rounded transition font-medium">
+                            + Añadir Arco a la Lista
+                        </button>
+                    </div>
+                    <div id="manual-arcs-list" class="mt-2 space-y-1 max-h-32 overflow-y-auto text-[11px] text-zinc-400"></div>
+                </div>
+
+                <div class="flex gap-2 pt-2">
+                    <button onclick="toggleModal(false)" class="w-1/2 bg-zinc-800 hover:bg-zinc-700 text-white py-2 rounded font-medium text-sm transition">Cancelar</button>
+                    <button onclick="saveSerie()" class="w-1/2 bg-red-600 hover:bg-red-700 text-white py-2 rounded font-medium text-sm transition">Guardar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="stats-modal" class="fixed inset-0 bg-black/85 backdrop-blur-md hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-[#181818] border border-zinc-800 rounded-xl p-6 w-full max-w-md shadow-2xl max-h-[85vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                    <i data-lucide="pie-chart" class="text-red-500"></i> Panel Faty Watch
+                </h2>
+                <button onclick="toggleStatsModal(false)" class="text-zinc-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <div class="grid grid-cols-2 gap-3 mb-6">
+                <div class="bg-zinc-900 p-3 rounded-lg border border-zinc-800 text-center">
+                    <p class="text-xs text-zinc-400 uppercase">Tiempo Maratoneado</p>
+                    <p id="global-time" class="text-lg font-bold text-red-500 mt-1">0 hrs</p>
+                </div>
+                <div class="bg-zinc-900 p-3 rounded-lg border border-zinc-800 text-center">
+                    <p class="text-xs text-zinc-400 uppercase">Vistos Hoy</p>
+                    <p id="today-count" class="text-lg font-bold text-green-500 mt-1">0 eps</p>
+                </div>
+            </div>
+            <h3 class="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-2">Restantes por Serie</h3>
+            <div id="stats-individual-container" class="space-y-3 mb-4"></div>
+            
+            <h3 class="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-2">Historial de Visualización Reciente</h3>
+            <div id="stats-days-container" class="bg-zinc-900 p-3 rounded-lg border border-zinc-800 text-xs space-y-2 text-zinc-300 max-h-48 overflow-y-auto"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getDatabase, ref, push, onValue, update, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAmxXw4nrLNAh3o94j2DaewIErDXwSWrgY",
+            authDomain: "control-de-series-c23cf.firebaseapp.com",
+            databaseURL: "https://control-de-series-c23cf-default-rtdb.firebaseio.com",
+            projectId: "control-de-series-c23cf",
+            storageBucket: "control-de-series-c23cf.firebasestorage.app",
+            messagingSenderId: "986728261890",
+            appId: "1:986728261890:web:aebc15255b11549038ba1b"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        const dbRef = ref(db, 'series');
+
+        let allSeries = [];
+        let currentSeasonsObj = {}; 
+
+        onValue(dbRef, (snapshot) => {
+            allSeries = [];
+            const data = snapshot.val();
+            if (data) {
+                Object.keys(data).forEach(key => {
+                    allSeries.push({
+                        id: key,
+                        ...data[key],
+                        runtime: data[key].runtime || 40,
+                        seasons: data[key].seasons || null,
+                        vistos: data[key].vistos || {}
+                    });
+                });
+            }
+            renderSeries(allSeries);
+        });
+
+        window.renderSeries = function(targetList) {
+            const container = document.getElementById('series-list');
+            container.innerHTML = '';
+
+            if (targetList.length === 0) {
+                container.innerHTML = `<div class="text-center py-12 text-zinc-500"><p class="text-sm">No hay series en tu lista de Faty Watch TV.</p></div>`;
+                return;
+            }
+
+            targetList.forEach(serie => {
+                const totalVistos = Object.keys(serie.vistos).length;
+                const porcentaje = Math.round((totalVistos / serie.totalEp) * 100) || 0;
+
+                let bloqueTemporadasHTML = '';
+                
+                if (serie.seasons && Object.keys(serie.seasons).length > 0) {
+                    Object.keys(serie.seasons).forEach(nameKey => {
+                        const infoArco = serie.seasons[nameKey];
+                        let inicio = 1, fin = infoArco;
+
+                        if (typeof infoArco === 'object') {
+                            inicio = infoArco.start;
+                            fin = infoArco.end;
+                        }
+
+                        let epsHTML = '';
+                        for(let i = inicio; i <= fin; i++) {
+                            const epIdStr = `ep_${i}`;
+                            const esVisto = serie.vistos.hasOwnProperty(epIdStr);
+                            epsHTML += `
+                                <button onclick="toggleEpisodio('${serie.id}', '${epIdStr}')" 
+                                    class="w-9 h-9 text-[11px] font-bold rounded flex items-center justify-center transition border
+                                    ${esVisto ? 'bg-red-600 border-red-500 text-white shadow-md' : 'bg-zinc-800 border-zinc-700 text-zinc-400'}">
+                                    ${i}
+                                </button>`;
+                        }
+                        bloqueTemporadasHTML += `
+                            <div class="mb-4">
+                                <h4 class="text-xs font-bold text-red-400 mb-1.5 uppercase tracking-wider flex justify-between">
+                                    <span>⚔️ ${nameKey}</span>
+                                    <span class="text-[10px] text-zinc-500 lowercase font-normal">Cap. ${inicio}-${fin}</span>
+                                </h4>
+                                <div class="grid grid-cols-6 gap-2 max-h-36 overflow-y-auto bg-zinc-900/60 p-2 rounded border border-zinc-800">
+                                    ${epsHTML}
+                                </div>
+                            </div>`;
+                    });
+                } else {
+                    let epsHTML = '';
+                    for (let i = 1; i <= serie.totalEp; i++) {
+                        const epIdStr = `ep_${i}`;
+                        const esVisto = serie.vistos.hasOwnProperty(epIdStr);
+                        epsHTML += `<button onclick="toggleEpisodio('${serie.id}', '${epIdStr}')" class="w-9 h-9 text-xs font-bold rounded flex items-center justify-center transition border ${esVisto ? 'bg-red-600 border-red-500 text-white' : 'bg-zinc-800 border-zinc-700 text-zinc-400'}">${i}</button>`;
+                    }
+                    bloqueTemporadasHTML = `<div class="grid grid-cols-6 gap-2 max-h-44 overflow-y-auto">${epsHTML}</div>`;
+                }
+
+                const card = document.createElement('div');
+                card.className = "bg-[#181818] border border-zinc-800/80 rounded-xl overflow-hidden shadow-xl";
+                card.innerHTML = `
+                    <div class="flex p-3 gap-4 items-start">
+                        <div class="w-24 shrink-0 flex flex-col items-center">
+                            <img src="${serie.cover}" class="w-full h-32 object-cover rounded-lg border border-zinc-800 shadow-md">
+                            <span class="text-[10px] font-bold mt-2 ${porcentaje === 100 ? 'text-green-500 bg-green-950/30' : 'text-zinc-400 bg-zinc-900'} px-2 py-0.5 rounded-full border border-zinc-800">${porcentaje}% visto</span>
+                        </div>
+                        <div class="flex flex-col justify-between h-32 flex-1">
+                            <div>
+                                <div class="flex justify-between items-start gap-1">
+                                    <h3 class="font-bold text-white text-base leading-tight line-clamp-2">${serie.title}</h3>
+                                    <div class="flex gap-1 shrink-0">
+                                        <button onclick="resetConteo('${serie.id}')" class="text-zinc-500 hover:text-yellow-500 p-1"><i data-lucide="refresh-cw" class="w-4 h-4"></i></button>
+                                        <button onclick="openEditModal('${serie.id}')" class="text-zinc-500 hover:text-blue-400 p-1"><i data-lucide="edit-3" class="w-4 h-4"></i></button>
+                                        <button onclick="deleteSerie('${serie.id}')" class="text-zinc-500 hover:text-red-500 p-1"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                                    </div>
+                                </div>
+                                <p class="text-xs text-zinc-500 mt-0.5">Progreso: <span class="text-zinc-300 font-semibold">${totalVistos}/${serie.totalEp}</span> eps</p>
+                            </div>
+                            <button onclick="toggleCalendario('${serie.id}')" class="w-full bg-zinc-800/80 hover:bg-zinc-700 border border-zinc-700 text-white py-2 px-3 rounded-lg font-medium text-xs flex items-center justify-center gap-2 transition">
+                                <i data-lucide="layers" class="w-3.5 h-3.5 text-red-500"></i> Desplegar Arcos / Temporadas
+                            </button>
+                        </div>
+                    </div>
+                    <div id="cal-${serie.id}" class="hidden border-t border-zinc-900 bg-[#111] p-4 max-h-80 overflow-y-auto">
+                        ${bloqueTemporadasHTML}
+                    </div>`;
+                container.appendChild(card);
+            });
+            lucide.createIcons();
+        };
+
+        window.addManualArc = function() {
+            const name = document.getElementById('manual-arco-name').value.trim();
+            const start = parseInt(document.getElementById('manual-arco-start').value);
+            const end = parseInt(document.getElementById('manual-arco-end').value);
+            const editingKey = document.getElementById('editing-arc-key').value;
+
+            if(!name || isNaN(start) || isNaN(end) || start > end) {
+                alert("Verifica los datos del arco.");
+                return;
+            }
+
+            if (editingKey && editingKey !== name) {
+                delete currentSeasonsObj[editingKey];
+            }
+
+            currentSeasonsObj[name] = { start: start, end: end };
+            
+            resetArcForm();
+            renderManualArcsList();
+        };
+
+        window.selectArcForEdit = function(key) {
+            const arc = currentSeasonsObj[key];
+            if(!arc) return;
+
+            document.getElementById('editing-arc-key').value = key;
+            document.getElementById('manual-arco-name').value = key;
+            document.getElementById('manual-arco-start').value = typeof arc === 'object' ? arc.start : 1;
+            document.getElementById('manual-arco-end').value = typeof arc === 'object' ? arc.end : arc;
+
+            const btn = document.getElementById('btn-add-arc');
+            if (btn) {
+                btn.innerText = "✓ Actualizar Arco Seleccionado";
+                btn.className = "w-full bg-blue-600/30 hover:bg-blue-600/50 text-blue-400 border border-blue-600/60 py-1.5 rounded transition font-medium";
+            }
+        };
+
+        function resetArcForm() {
+            document.getElementById('editing-arc-key').value = '';
+            document.getElementById('manual-arco-name').value = '';
+            document.getElementById('manual-arco-start').value = '';
+            document.getElementById('manual-arco-end').value = '';
+            
+            const btn = document.getElementById('btn-add-arc');
+            if (btn) {
+                btn.innerText = "+ Añadir Arco a la Lista";
+                btn.className = "w-full bg-yellow-600/20 hover:bg-yellow-600/40 text-yellow-400 border border-yellow-600/50 py-1.5 rounded transition font-medium";
+            }
+        }
+
+        window.renderManualArcsList = function() {
+            const container = document.getElementById('manual-arcs-list');
+            container.innerHTML = '';
+            Object.keys(currentSeasonsObj).forEach(k => {
+                const info = currentSeasonsObj[k];
+                const start = typeof info === 'object' ? info.start : 1;
+                const end = typeof info === 'object' ? info.end : info;
+
+                const div = document.createElement('div');
+                div.className = "flex justify-between items-center bg-zinc-800/40 hover:bg-zinc-800 p-1.5 rounded border border-zinc-700/60 mt-1 cursor-pointer transition";
+                div.setAttribute('onclick', `selectArcForEdit('${k}')`);
+                div.innerHTML = `
+                    <span class="flex-1">⚔️ <strong>${k}</strong> (${start}-${end})</span>
+                    <button type="button" onclick="event.stopPropagation(); removeManualArc('${k}')" class="text-red-400 hover:text-red-500 font-bold px-2 text-xs">✕</button>`;
+                container.appendChild(div);
+            });
+        };
+
+        window.removeManualArc = function(key) {
+            delete currentSeasonsObj[key];
+            if(document.getElementById('editing-arc-key').value === key) {
+                resetArcForm();
+            }
+            renderManualArcsList();
+        };
+
+        window.searchInInternet = async function() {
+            const query = document.getElementById('api-search').value.trim();
+            const resultsDiv = document.getElementById('api-results');
+            if(!query) return;
+
+            resultsDiv.innerHTML = "<p class='text-zinc-500 animate-pulse'>Consultando bases de datos de Faty Watch...</p>";
+            resultsDiv.classList.remove('hidden');
+
+            try {
+                const res = await fetch(`https://api.tvmaze.com/search/shows?q=${encodeURIComponent(query)}`);
+                const data = await res.json();
+                
+                resultsDiv.innerHTML = "";
+                if(data.length === 0) {
+                    resultsDiv.innerHTML = "<p class='text-zinc-500'>No se halló información online. ¡Créalo abajo de forma manual!</p>";
+                    return;
+                }
+
+                data.slice(0, 3).forEach(item => {
+                    const show = item.show;
+                    const btn = document.createElement('button');
+                    btn.className = "w-full text-left p-2 hover:bg-zinc-800 rounded flex justify-between items-center text-zinc-300 transition border border-transparent hover:border-zinc-700 mb-1";
+                    btn.type = "button";
+                    btn.innerHTML = `<span>🎬 <strong>${show.name}</strong></span> <span class="text-[10px] text-zinc-500">Multi-Source</span>`;
+                    
+                    btn.onclick = async () => {
+                        document.getElementById('serie-title').value = show.name;
+                        document.getElementById('serie-cover').value = show.image ? show.image.original : 'https://images.unsplash.com/photo-1594909122845-11baa439b7bf?q=80&w=300';
+                        document.getElementById('serie-runtime').value = show.averageRuntime || 24;
+                        
+                        currentSeasonsObj = {}; 
+
+                        if(show.name.toLowerCase().includes("one piece") && !show.name.toLowerCase().includes("live action")) {
+                            document.getElementById('serie-total').value = 1085;
+                            currentSeasonsObj = {
+                                "Arco de East Blue": { start: 1, end: 61 },
+                                "Arco de Alabasta": { start: 62, end: 135 },
+                                "Arco de Skypeia": { start: 136, end: 206 },
+                                "Arco de Water 7 & Enies Lobby": { start: 207, end: 325 },
+                                "Arco de Thriller Bark": { start: 326, end: 384 },
+                                "Arco de Summit War (Marineford)": { start: 385, end: 516 },
+                                "Arco de Fishman Island": { start: 517, end: 574 },
+                                "Arco de Punk Hazard": { start: 575, end: 628 },
+                                "Arco de Dressrosa": { start: 629, end: 746 },
+                                "Arco de Zou & Whole Cake Island": { start: 747, end: 891 },
+                                "Arco del País de Wano": { start: 892, end: 1085 }
+                            };
+                        } else {
+                            try {
+                                const epRes = await fetch(`https://api.tvmaze.com/shows/${show.id}/episodes`);
+                                const epData = await epRes.json();
+                                if(Array.isArray(epData)) {
+                                    document.getElementById('serie-total').value = epData.length;
+                                    let mapSeasons = {};
+                                    epData.forEach(ep => {
+                                        if(ep.season) {
+                                            const tag = `Temporada ${ep.season}`;
+                                            if(!mapSeasons[tag]) mapSeasons[tag] = { start: ep.number, end: ep.number };
+                                            if(ep.number > mapSeasons[tag].end) mapSeasons[tag].end = ep.number;
+                                            if(ep.number < mapSeasons[tag].start) mapSeasons[tag].start = ep.number;
+                                        }
+                                    });
+                                    
+                                    let acumulado = 0;
+                                    Object.keys(mapSeasons).forEach(k => {
+                                        const count = (mapSeasons[k].end - mapSeasons[k].start) + 1;
+                                        currentSeasonsObj[k] = { start: acumulado + 1, end: acumulado + count };
+                                        acumulado += count;
+                                    });
+                                }
+                            } catch(e) {
+                                document.getElementById('serie-total').value = 12;
+                            }
+                        }
+                        resetArcForm();
+                        renderManualArcsList();
+                        resultsDiv.classList.add('hidden');
+                    };
+                    resultsDiv.appendChild(btn);
+                });
+            } catch (err) {
+                resultsDiv.innerHTML = "<p class='text-red-500'>Fallo de red en Faty Watch.</p>";
+            }
+        };
+
+        window.saveSerie = async function() {
+            const id = document.getElementById('edit-id').value;
+            const title = document.getElementById('serie-title').value.trim();
+            const cover = document.getElementById('serie-cover').value.trim() || 'https://images.unsplash.com/photo-1594909122845-11baa439b7bf?q=80&w=300';
+            const total = parseInt(document.getElementById('serie-total').value);
+            const runtime = parseInt(document.getElementById('serie-runtime').value) || 24;
+
+            if (!title || !total) return;
+
+            const payload = { 
+                title, 
+                cover, 
+                totalEp: total, 
+                runtime, 
+                seasons: Object.keys(currentSeasonsObj).length > 0 ? currentSeasonsObj : null, 
+                vistos: id ? (allSeries.find(s=>s.id===id)?.vistos || {}) : {} 
+            };
+
+            if (id) {
+                await update(ref(db, `series/${id}`), payload);
+            } else {
+                await push(dbRef, payload);
+            }
+            toggleModal(false);
+        };
+
+        window.toggleEpisodio = async function(serieId, epIdStr) {
+            const serie = allSeries.find(s => s.id === serieId);
+            let nuevosVistos = { ...serie.vistos };
+            if (nuevosVistos.hasOwnProperty(epIdStr)) {
+                delete nuevosVistos[epIdStr];
+            } else {
+                nuevosVistos[epIdStr] = new Date().toISOString().split('T')[0];
+            }
+            await update(ref(db, `series/${serieId}`), { vistos: nuevosVistos });
+        };
+
+        window.resetConteo = async function(id) {
+            if (confirm('¿Reiniciar progreso en Faty Watch TV?')) {
+                await update(ref(db, `series/${id}`), { vistos: {} });
+            }
+        };
+
+        window.searchLocalSeries = function() {
+            const query = document.getElementById('search-bar').value.toLowerCase().trim();
+            const filtered = allSeries.filter(s => s.title.toLowerCase().includes(query));
+            renderSeries(filtered);
+        };
+
+        window.toggleModal = function(show) {
+            document.getElementById('modal').classList.toggle('hidden', !show);
+            currentSeasonsObj = {};
+            resetArcForm();
+            renderManualArcsList();
+            if(show) {
+                document.getElementById('edit-id').value = '';
+                document.getElementById('serie-title').value = '';
+                document.getElementById('serie-cover').value = '';
+                document.getElementById('serie-total').value = '';
+                document.getElementById('serie-runtime').value = '';
+                document.getElementById('modal-title').innerText = 'Nueva Serie';
+            }
+        };
+
+        window.openEditModal = function(id) {
+            const serie = allSeries.find(s => s.id === id);
+            if(!serie) return;
+            toggleModal(true);
+            document.getElementById('modal-title').innerText = 'Editar en Faty Watch';
+            document.getElementById('edit-id').value = serie.id;
+            document.getElementById('serie-title').value = serie.title;
+            document.getElementById('serie-cover').value = serie.cover;
+            document.getElementById('serie-total').value = serie.totalEp;
+            document.getElementById('serie-runtime').value = serie.runtime;
+            currentSeasonsObj = serie.seasons ? { ...serie.seasons } : {};
+            resetArcForm();
+            renderManualArcsList();
+        };
+
+        window.deleteSerie = async function(id) {
+            if (confirm('¿Eliminar permanentemente?')) {
+                await remove(ref(db, `series/${id}`));
+            }
+        };
+
+        window.toggleCalendario = function(id) {
+            document.getElementById(`cal-${id}`).classList.toggle('hidden');
+        };
+
+        window.toggleStatsModal = function(show) {
+            document.getElementById('stats-modal').classList.toggle('hidden', !show);
+        };
+
+        function getArcoName(numCap, seasonsMap) {
+            if (!seasonsMap) return "General";
+            let foundName = "Episodios Libres";
+            Object.keys(seasonsMap).forEach(key => {
+                const range = seasonsMap[key];
+                if (typeof range === 'object' && numCap >= range.start && numCap <= range.end) {
+                    foundName = key;
+                }
+            });
+            return foundName;
+        }
+
+        window.openStatsModal = function() {
+            toggleStatsModal(true);
+            const indContainer = document.getElementById('stats-individual-container');
+            const daysContainer = document.getElementById('stats-days-container');
+            indContainer.innerHTML = ''; daysContainer.innerHTML = '';
+
+            let globalMinutos = 0; let hoyContador = 0;
+            const hoyFecha = new Date().toISOString().split('T')[0];
+            
+            const logsPorDia = {}; 
+
+            allSeries.forEach(serie => {
+                const totalVistos = Object.keys(serie.vistos).length;
+                globalMinutos += (totalVistos * serie.runtime);
+
+                Object.keys(serie.vistos).forEach(epKey => {
+                    const fecha = serie.vistos[epKey];
+                    const numCap = parseInt(epKey.replace('ep_', ''));
+                    
+                    const nombreArco = getArcoName(numCap, serie.seasons);
+
+                    if(fecha === hoyFecha) hoyContador++;
+
+                    if (!logsPorDia[fecha]) logsPorDia[fecha] = [];
+                    logsPorDia[fecha].push({
+                        serie: serie.title,
+                        arco: nombreArco,
+                        cap: numCap
+                    });
+                });
+
+                const div = document.createElement('div');
+                div.className = "bg-zinc-900 p-3 rounded-lg border border-zinc-800 text-xs flex justify-between items-center";
+                div.innerHTML = `<div><p class="font-bold text-white">${serie.title}</p><p class="text-zinc-400">Faltan: ${serie.totalEp - totalVistos} eps</p></div>
+                                 <span class="text-zinc-500 font-medium text-[11px]">${totalVistos} vistos</span>`;
+                indContainer.appendChild(div);
+            });
+
+            document.getElementById('global-time').innerText = `${Math.round(globalMinutos / 60)} hrs`;
+            document.getElementById('today-count').innerText = `${hoyContador} eps`;
+
+            const diasOrdenados = Object.keys(logsPorDia).sort((a, b) => new Date(b) - new Date(a));
+            
+            if(diasOrdenados.length === 0) {
+                daysContainer.innerHTML = "<p class='text-zinc-500 text-center py-2'>Ningún capítulo marcado aún.</p>";
+            } else {
+                diasOrdenados.forEach(dia => {
+                    const secciónDia = document.createElement('div');
+                    secciónDia.className = "border-b border-zinc-800/60 pb-2 mb-2 last:border-0";
+                    
+                    let badgeFecha = `<span class="text-[10px] bg-red-950/40 text-red-400 font-bold px-2 py-0.5 rounded border border-red-900/40 inline-block mb-1.5">${dia}</span>`;
+                    let listadoCapsHTML = '';
+
+                    logsPorDia[dia].forEach(item => {
+                        listadoCapsHTML += `
+                            <div class="flex items-start gap-1 text-[11px] text-zinc-300 pl-1 mb-0.5">
+                                <span class="text-red-500">🍿</span> 
+                                <div>
+                                    <strong class="text-white">${item.serie}</strong> 
+                                    <span class="text-zinc-500">—</span> 
+                                    <span class="text-yellow-500 font-medium">${item.arco}</span> 
+                                    <span class="text-zinc-400 bg-zinc-800/80 px-1 rounded text-[10px] ml-1">Cap. ${item.cap}</span>
+                                </div>
+                            </div>`;
+                    });
+
+                    secciónDia.innerHTML = badgeFecha + listadoCapsHTML;
+                    daysContainer.appendChild(secciónDia);
+                });
+            }
+            lucide.createIcons();
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,6 @@
+{
+  "appId": "com.fatywatch.app",
+  "appName": "Faty Watch TV",
+  "webDir": ".",
+  "bundledWebRuntime": false
+}

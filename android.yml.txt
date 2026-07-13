@@ -1,0 +1,16 @@
+
+    "url": "https://github.com/jacobochacon2012-lab/FATY/issues"
+  },
+  "homepage": "https://github.com/jacobochacon2012-lab/FATY#readme"
+}
+
+
+
+added 92 packages, and audited 93 packages in 4s
+
+11 packages are looking for funding
+  run `npm fund` for details
+
+found 0 vulnerabilities
+error: unknown option '--confirm'
+Error: Process completed with exit code 1.
